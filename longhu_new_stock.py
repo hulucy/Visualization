@@ -5,9 +5,10 @@ import seaborn as sns
 import datetime
 # %% 
 
+checkDate = '2021-05-27'
 data_path = '/Users/wuhao/Documents/work/龙虎榜'
 type_list = ['不含新股第一天', '新股第一天']
-checkDate = '2021-05-27'
+
 
 # %%
 
@@ -16,12 +17,29 @@ def serial_date_to_string(srl_no):
     return new_date.strftime("%Y-%m-%d")
 
 
+# %% 解决NaN黑色背景的问题
+def color_zero_white(val):
+    color = 'white' if val == 0 else 'black'
+    return 'color: %s' % color
+
+def color_zero_background(data, color='white'):
+    attr = 'background-color: {}'.format(color)
+    if data.ndim == 1:  # Series from .apply(axis=0) or axis=1
+        is_max = data == 0
+        return [attr if v else '' for v in is_max]
+    else:  # from .apply(axis=None)
+        is_max = data == 0
+        return pd.DataFrame(np.where(is_max, attr, ''),
+                            index=data.index, columns=data.columns)
+
+
+
+
 
 # %%
 def recolor_longhu(file_name, sheet_name):
     
     df = pd.read_excel(file_name, sheet_name)
-    df.head()
 
     change_columns = list(df.columns[1:len(df.columns)-3])
     change_columns = [x.replace('2021-', '') for x in change_columns]
@@ -29,12 +47,19 @@ def recolor_longhu(file_name, sheet_name):
 
 
     df.set_index(type + '-' + sheet_name, inplace=True)
+    df_col = list(df.columns[:(df.shape[1]-3)])
+    df_sub = df[df_col]
 
     cm = sns.light_palette('red', as_cmap=True)
+    # cm.set_under('white')
 
-    s = df.style.format('{:.0f}', na_rep = '')\
-            .background_gradient(cmap=cm)\
-            .set_properties(**{'max-width': '80px', 'font-size': '13pt'})
+    dt = df.copy().fillna(0)
+
+    s = dt.style.format("{:.0f}")\
+        .set_properties(**{'max-width': '80px', 'font-size': '13pt'})\
+        .background_gradient(cmap=cm, axis=None, subset = df_col)\
+        .applymap(lambda x: color_zero_white(x))\
+        .apply(color_zero_background, axis=None)
 
     return(s)
 
@@ -70,21 +95,5 @@ with pd.ExcelWriter(f'{data_path}/{checkDate}.xlsx') as writer:
     s[3].to_excel(writer, sheet_name = type_list[1] + '-' + sheet_name_list[0])
     s[4].to_excel(writer, sheet_name = type_list[1] + '-' + sheet_name_list[1])
     s[5].to_excel(writer, sheet_name = type_list[1] + '-' + sheet_name_list[2])
-# %%
-df = pd.read_excel(file_name, sheet_name)
-df.head()
-
 
 # %%
-change_columns = list(df.columns[1:len(df.columns)-3])
-change_columns = [x.replace('2021-', '') for x in change_columns]
-df.columns = [sheet_name] + change_columns + ['总次数', '总买入金额（万）', '总利润（万）']
-
-
-# %%
-
-df.set_index(sheet_name, inplace=True)
-
-cm = sns.light_palette('red', as_cmap=True)
-
-s = df.style.format('{:.0f}', na_rep = '').background_gradient(cmap=cm)
