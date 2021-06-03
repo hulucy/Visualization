@@ -48,18 +48,21 @@ def recolor_longhu(file_name, sheet_name):
 
     df.set_index(type + '-' + sheet_name, inplace=True)
     df_col = list(df.columns[:(df.shape[1]-3)])
-    df_sub = df[df_col]
 
     cm = sns.light_palette('red', as_cmap=True)
     # cm.set_under('white')
 
-    dt = df.copy().fillna(0)
+    # dt = df.copy().fillna(0)
+    # s = dt.style.format("{:.0f}")\
+    #     .set_properties(**{'max-width': '80px', 'font-size': '13pt'})\
+    #     .background_gradient(cmap=cm, axis=None, subset = df_col)\
+    #     .applymap(lambda x: color_zero_white(x))\
+    #     .apply(color_zero_background, axis=None)
 
-    s = dt.style.format("{:.0f}")\
-        .set_properties(**{'max-width': '80px', 'font-size': '13pt'})\
-        .background_gradient(cmap=cm, axis=None, subset = df_col)\
-        .applymap(lambda x: color_zero_white(x))\
-        .apply(color_zero_background, axis=None)
+    s = df.style.format('{:.0f')\
+            .set_properties(**{'max-width': '80px', 'font-size': '13pt'})\
+            .background_gradient(cmap=cm, axis=None, subset = df_col)\
+            .highlight_null(null_color='transparent')
 
     return(s)
 
